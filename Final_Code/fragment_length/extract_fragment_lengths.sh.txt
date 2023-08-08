@@ -1,0 +1,5 @@
+for filename in *hg38.frag.tsv.bgz
+do
+    echo $filename
+    zcat $filename | awk '{print($3-$2)}' | sort -g | uniq -c | awk '{print $2,$1}' > ${filename/.hg38.frag.tsv.bgz/_lenuniqcount.tsv}
+done

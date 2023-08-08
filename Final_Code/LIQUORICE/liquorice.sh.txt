@@ -1,0 +1,17 @@
+#!/bin/bash
+BAMS=(/mnt/DATA1/FrEIA/output/Cristiano/trimmed/1_mapping/EE88027.sortByCoord.bam)
+CONTROLS="EE87920.sortByCoord"
+REF_GENOME="/mnt/DATA1/resources/reference_genomes/ref_genomes/hg38.fa"
+MAPPABILITY="/mnt/DATA1/resources/reference_genomes/ref_genomes/hg38.fa.mappability_100bp.bw"
+BEDS="/mnt/DATA1/resources/roi/filtered"
+
+for SAMPLE in ${BAMS[@]}
+do
+LIQUORICE --bamfile "$SAMPLE" \
+--refgenome_fasta "$REF_GENOME" \
+--mappability_bigwig "$MAPPABILITY" \
+--bedpathlist "${BEDS}/A549_hg38.bed" "${BEDS}/HPF_lung_fibroblast_cluster1737_hg38.bed" "${BEDS}/HeLa_cluster1777_hg38.bed" "${BEDS}/colon_cluster507_hg38.bed" "${BEDS}/hematopoietic_all_hg38.bed" "${BEDS}/SAEC_hg38.bed" "${BEDS}/hepatocyte_all_hg38.bed" "${BEDS}/melano_SOX_clusters1863_2205_hg38.bed" "${BEDS}/panc_adenoca_cluster1261_hg38.bed" "${BEDS}/panc_epithel_cluster1974_hg38.bed" "${BEDS}/prostate_cluster2483_hg38.bed" "${BEDS}/mammary_epithel_cluster2438_hg38.bed" "${BEDS}/prostate_cluster2483_hg38.bed" "${BEDS}/skeletal_muscle_cluster1518_hg38.bed" \
+--blacklist "hg38" --n_cpus 8
+done
+
+LIQUORICE_summary --control_name_list ${CONTROLS}

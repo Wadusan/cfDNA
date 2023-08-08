@@ -1,0 +1,56 @@
+#!/bin/bash
+
+RUN="13"
+SAMPLEDIR="/mnt/DATA2/cfDNA_finaledb/results/BAM/TrueD25630/"
+OUTPUTDIR="/mnt/DATA2/cfDNA_finaledb/results/feature/TrueD25630/ichorCNA_"$RUN"/"
+CONTROL="/mnt/DATA2/cfDNA_finaledb/configs/control_samples_rm_outlier.txt"
+BINSIZE=1000000
+
+cd "$SAMPLEDIR"
+mkdir "$OUTPUTDIR"
+mkdir "$OUTPUTDIR"pon/
+
+for sample in *.bam
+do
+mkdir "$OUTPUTDIR${sample%.*}"
+
+/mnt/DATA2/cfDNA_finaledb/scripts/hmmcopy_utils/bin/readCounter \
+--window "$BINSIZE" \
+--quality 20 \
+--chromosome chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,chr11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chr20,chr21,chr22,chrX,chrY \
+"$SAMPLEDIR$sample" > "$OUTPUTDIR${sample%.*}"/"${sample%.*}".wig
+if grep -q "${sample%%_*}" "$CONTROL"; then
+  echo "$OUTPUTDIR${sample%.*}"/"${sample%.*}".wig >> "$OUTPUTDIR"pon/pon_wig.txt
+fi
+done
+
+Rscript /mnt/DATA2/ichorCNA/scripts/createPanelOfNormals.R \
+--filelist "$OUTPUTDIR"pon/pon_wig.txt \
+--gcWig /mnt/DATA2/cfDNA_finaledb/configs/forzip/wigfiles/grch38/GRCh38.gc.ws_"$BINSIZE".wig \
+--mapWig /mnt/DATA2/cfDNA_finaledb/configs/forzip/wigfiles/grch38/GRCh38.map.ws_"$BINSIZE".wig \
+--centromere /mnt/DATA2/ichorCNA/inst/extdata/GRCh38.GCA_000001405.2_centromere_acen.txt \
+--outfile "$OUTPUTDIR"pon/pon
+
+for sample in *.bam
+do
+Rscript /mnt/DATA2/ichorCNA/scripts/runIchorCNA.R \
+--id "${sample%.*}" \
+--WIG "$OUTPUTDIR${sample%.*}"/"${sample%.*}".wig \
+--ploidy "c(2)" \
+--normal "c(0.5,0.9,0.95, 0.99, 0.995, 0.999)" \
+--maxCN 3 \
+--gcWig /mnt/DATA2/cfDNA_finaledb/configs/forzip/wigfiles/grch38/GRCh38.gc.ws_"$BINSIZE".wig \
+--mapWig /mnt/DATA2/cfDNA_finaledb/configs/forzip/wigfiles/grch38/GRCh38.map.ws_"$BINSIZE".wig \
+--centromere /mnt/DATA2/ichorCNA/inst/extdata/GRCh38.GCA_000001405.2_centromere_acen.txt \
+--normalPanel "$OUTPUTDIR"pon/pon_median.rds \
+--includeHOMD False \
+--chrs "c(1:22, \"X\")" \
+--chrTrain "c(1:22)" \
+--estimateNormal True \
+--estimatePloidy True \
+--estimateScPrevalence FALSE \
+--scStates "c()" \
+--txnE 0.9999999 \
+--txnStrength 10000000 \
+--genomeBuild hg38 --outDir "$OUTPUTDIR${sample%.*}"
+done
